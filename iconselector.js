@@ -2131,13 +2131,11 @@ const IconSelector = (target, returnSelectors = false) => {
         const oe = Object.entries(iconSet);
         for (let [key, value] of oe) {
             if (key !== '_recent') {
-                value.set.some(emoji => {
-                    if (emoji.icon === icon) {
-                        iconSet._recent.set.unshift(emoji);
-                        setStorageValue(emoji);
-                        return true;
-                    }
-                });
+                if( value.set.some(emoji => emoji.icon === icon) ) {
+                    iconSet._recent.set.unshift(emoji);
+                    setStorageValue(emoji);
+                    break;
+                }
             }
         }
         RewriteRecents();
