@@ -1,0 +1,87 @@
+#iconselector_opener,
+#iconselector .close,
+#iconselector span {
+    cursor: pointer;
+}
+#iconselector .iconlist-wrap::-webkit-scrollbar,
+#iconselector .grouplist-wrap::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+#iconselector .iconlist-wrap::-webkit-scrollbar-button,
+#iconselector .grouplist-wrap::-webkit-scrollbar-button {
+    display: none;
+}
+#iconselector .iconlist-wrap::-webkit-scrollbar-track-piece,
+#iconselector .grouplist-wrap::-webkit-scrollbar-track-piece {
+    background: white
+}
+#iconselector .iconlist-wrap::-webkit-scrollbar-thumb,
+#iconselector .grouplist-wrap::-webkit-scrollbar-thumb {
+    background: #999
+}
+#iconselector, #iconselector * {
+    box-sizing: content-box;
+}
+#iconselector {
+    display: none;
+    width: 100%;
+    background: white;
+}
+#iconselector.active {
+    display: block;
+    border: solid 1px #ccc;
+    border-radius: 2px;
+    padding: 6px;
+    box-shadow: inset 0 0 5px 0 #ccc;
+}
+#iconselector span {
+    padding: 4px;
+    width: 22px;
+    height: 22px;
+    font-size: 16px;
+}
+#iconselector span:hover {
+    background: #ccc;
+}
+#iconselector .close {
+    text-align: right;
+    font-family: Tahoma, sans-serif;
+    margin-bottom: 4px;
+}
+#iconselector .close span {
+    padding: 0 4px;
+}
+#iconselector .close span:hover {
+    background: red;
+    color: white;
+    padding: 0 4px;
+}
+#iconselector .iconlist-wrap {
+    overflow: hidden;
+    height: 144px;
+}
+#iconselector .iconlist-wrap:hover {
+    overflow-y: auto
+}
+#iconselector .iconlist {
+    display: flex;
+    flex-wrap: wrap;
+    text-align: center;
+}
+#iconselector .grouplist-wrap {
+    overflow: hidden;
+    margin-top: 9px;
+    border-top: solid 1px #ccc;
+    padding-top: 2px;
+}
+#iconselector .grouplist-wrap:hover {
+    overflow-x: auto;
+}
+#iconselector .grouplist {
+    display: flex;
+    text-align: center;
+}
+#iconselector .grouplist span.selected {
+    border-bottom: solid 4px #11aff7;
+}
