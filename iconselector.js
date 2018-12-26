@@ -1,4 +1,5 @@
-const IconSelector = (target, returnSelectors = false) => {
+const IconSelector = target => {
+    if( !target ) throw new ReferenceError("target is not defined");
     const iconSet = {
         _recent: {
             title: 'Usados más recientemente',
@@ -2071,6 +2072,155 @@ const IconSelector = (target, returnSelectors = false) => {
             ]
         }
     };
+
+    const opener = createElement('<div id="iconselector_opener" title="Insertar emoji">😃</div>');
+    const structure = createElement('<div id="iconselector"><div class="close"><span>&times;</span></div><div class="iconlist-wrap"><div class="iconlist"></div></div><div class="grouplist-wrap"><div class="grouplist"></div></div></div>');
+    const styles = '#iconselector_opener, #iconselector .close, #iconselector span{cursor:pointer}#iconselector .iconlist-wrap::-webkit-scrollbar, #iconselector .grouplist-wrap::-webkit-scrollbar{width:4px;height:4px}#iconselector .iconlist-wrap::-webkit-scrollbar-button, #iconselector .grouplist-wrap::-webkit-scrollbar-button{display:none}#iconselector .iconlist-wrap::-webkit-scrollbar-track-piece, #iconselector .grouplist-wrap::-webkit-scrollbar-track-piece{background:white}#iconselector .iconlist-wrap::-webkit-scrollbar-thumb, #iconselector .grouplist-wrap::-webkit-scrollbar-thumb{background:#999}#iconselector, #iconselector *{box-sizing:content-box}#iconselector{display:none;width:100%;background:white}#iconselector.active{display:block;border:solid 1px #ccc;border-radius:2px;padding:6px;box-shadow:inset 0 0 5px 0 #ccc}#iconselector span{padding:4px;width:22px;height:22px;font-size:16px}#iconselector span:hover{background:#ccc}#iconselector .close{text-align:right;font-family:Tahoma,sans-serif;margin-bottom:4px}#iconselector .close span{padding:0 4px}#iconselector .close span:hover{background:red;color:white;padding:0 4px}#iconselector .iconlist-wrap{overflow:hidden;height:144px}#iconselector .iconlist-wrap:hover{overflow-y:auto}#iconselector .iconlist{display:flex;flex-wrap:wrap;text-align:center}#iconselector .grouplist-wrap{overflow:hidden;margin-top:9px;border-top:solid 1px #ccc;padding-top:2px}#iconselector .grouplist-wrap:hover{overflow-x:auto}#iconselector .grouplist{display:flex;text-align:center}#iconselector .grouplist span.selected{border-bottom:solid 4px #11aff7}';
+
+    const Init = () => {
+        AppendStyles();
+        UpdateRecentEmojis();
+        FillStructure().then(() =>{
+            PositionateThings();
+            EventHandler();
+        });
+    };
+    
+    const AppendStyles = () => {
+        const style = document.createElement('style');
+        style.rel = 'stylesheet';
+        style.type = 'text/css';
+        style.innerHTML = styles;
+        document.head.appendChild(style);
+    };
+
+    const UpdateRecentEmojis = () => Utils.GetStorageValues().forEach(el => iconSet._recent.set.push(el));
+
+    const FillStructure = () => {
+        return new Promise(resolve => {
+            for (let [key, value] of Object.entries(iconSet)) {
+                structure.querySelector('.grouplist').innerHTML += `<span data-group="${key}" title="${value.title}">${value.groupIcon}</span>`;
+                value.set.forEach(icon => {
+                    structure.querySelector('.iconlist').innerHTML += `<span title="${icon.name}" data-group="${key}">${icon.icon}</span>`;
+                });
+            }
+            target.parentElement.style.position = 'relative';
+            target.parentElement.appendChild(structure);
+            target.parentElement.appendChild(opener);
+            resolve();
+        });
+    };
+
+    const PositionateThings = () => {
+        opener.style.position = 'absolute';
+        opener.style.top = 0 + 'px';
+        opener.style.left = target.offsetWidth + 4 + 'px';
+        structure.style.maxWidth = target.offsetWidth + 'px';
+        //structure.style.top = target.getBoundingClientRect().top + window.scrollY + target.offsetHeight + 2 + 'px';
+        //structure.style.left = target.getBoundingClientRect().left + 'px';
+    };
+
+    const AddToRecents = icon => {
+        iconSet._recent.set.some(row => {
+            if (row.icon === icon) {
+                const index = iconSet._recent.set.indexOf(row);
+                iconSet._recent.set.splice(index, 1);
+                return true;
+            }
+        });
+
+        if (iconSet._recent.set.length === 50) iconSet._recent.set.splice(49, 1);
+
+        const oe = Object.entries(iconSet);
+        for (let [key, value] of oe) {
+            if (key !== '_recent') {
+                value.set.some(emoji => {
+                    if (emoji.icon === icon) {
+                        iconSet._recent.set.unshift(emoji);
+                        setStorageValue(emoji);
+                        return true;
+                    }
+                });
+            }
+        }
+        RewriteRecents();
+    };
+
+    const RewriteRecents = () => {
+        structure.querySelectorAll('.iconlist span[data-group="_recent"]').forEach(el => el.remove());
+        iconSet._recent.set.forEach(icon => structure.querySelector('.iconlist').innerHTML += `<span title="${icon.name}" data-group="_recent" style="display: none;">${icon.icon}</span>`);
+        if (structure.querySelector('.grouplist span[data-group="_recent"]').classList.contains('selected')) {
+            structure.querySelectorAll('.iconlist span').forEach(el => el.style.display = 'none');
+            structure.querySelectorAll(`.iconlist span[data-group="_recent"]`).forEach(el => el.style.display = 'block');
+        }
+    };
+
+    const SetTargetPosition = () => target.dataset.position = target.selectionStart;
+
+    const Open = ev => {
+        ev.preventDefault();
+        if (structure.classList.contains('active')) {
+            target.focus();
+            return;
+        }
+        PositionateThings();
+        structure.classList.add('active');
+        target.focus();
+    };
+
+    const Close = ev => {
+        ev.preventDefault();
+        structure.classList.remove('active');
+    };
+    
+    const SelectGroup = el => {
+        el.parentElement.childNodes.forEach(n => n.classList.remove('selected'));
+        el.classList.add('selected');
+        structure.querySelectorAll('.iconlist span').forEach(el => el.style.display = 'none');
+        structure.querySelectorAll(`.iconlist span[data-group="${el.dataset.group}"]`).forEach(el => el.style.display = 'block');
+    };
+    
+    const EventHandler = () => {
+        target.addEventListener('blur', () => SetTargetPosition());
+        opener.addEventListener('click', ev => Open(ev));
+        structure.querySelector('.close').addEventListener('click', ev => Close(ev));
+        structure.querySelectorAll('.grouplist span').forEach(el => el.addEventListener('click', () => SelectGroup(el)));
+    };
+
+    const Utils = {
+
+        CreateElement: code => {
+            let div = document.createElement('div');
+            div.innerHTML = code.trim();
+            return div.firstChild;
+        },
+
+        GetStorageValues: () => JSON.parse(localStorage.getItem('iconselector')) || [],
+
+        SetStorageValue: setRow => {
+
+            let current = getStorageValues();
+            const len = current.length;
+
+            current = current.filter(el => {
+                let objectA = JSON.stringify(el);
+                let objectB = JSON.stringify(setRow);
+                return objectA !== objectB;
+            });
+
+            if (len === 50) current.splice(49, 1);
+
+            current.unshift(setRow);
+            localStorage.setItem('iconselector', JSON.stringify(current));
+        }
+
+    };
+
+};
+
+
+const IconSelecto = (target, returnSelectors = false) => {
+
 
     // helpers
     const createElement = code => {
