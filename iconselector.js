@@ -1,4 +1,5 @@
-const IconSelector = (target, returnSelectors = false) => {
+const IconSelector = target => {
+    if( !target ) throw new ReferenceError("target is not defined");
     const iconSet = {
         _recent: {
             title: 'Usados más recientemente',
@@ -2072,43 +2073,111 @@ const IconSelector = (target, returnSelectors = false) => {
         }
     };
 
-    // helpers
-    const createElement = code => {
-        let div = document.createElement('div');
-        div.innerHTML = code.trim();
-        return div.firstChild;
+    const Utils = {
+
+        /**
+         * Crea un elemento a partir de un string con html
+         * @param {string} code
+         * @returns {Node}
+         */
+        CreateElement: code => {
+            let div = document.createElement('div');
+            div.innerHTML = code.trim();
+            return div.firstChild;
+        },
+
+        /**
+         * Recupera los iconos recientes del localStorage
+         * @returns {Array}
+         */
+        GetStorageValues: () => JSON.parse(localStorage.getItem('iconselector')) || [],
+
+        /**
+         * Guarda un icono reciente en localStorage
+         * @param {object} setRow
+         */
+        SetStorageValue: setRow => {
+
+            let current = Utils.GetStorageValues();
+            const len = current.length;
+
+            current = current.filter(el => {
+                let objectA = JSON.stringify(el);
+                let objectB = JSON.stringify(setRow);
+                return objectA !== objectB;
+            });
+
+            if (len === 50) current.splice(49, 1);
+
+            current.unshift(setRow);
+            localStorage.setItem('iconselector', JSON.stringify(current));
+        }
+
     };
-    const getStorageValues = () => JSON.parse(localStorage.getItem('iconselector')) || [];
-    const setStorageValue = setRow => {
 
-        let current = getStorageValues();
-        const len = current.length;
-
-        current = current.filter(el => {
-            let objectA = JSON.stringify(el);
-            let objectB = JSON.stringify(setRow);
-            return objectA !== objectB;
-        });
-
-        if (len === 50) current.splice(49, 1);
-
-        current.unshift(setRow);
-        localStorage.setItem('iconselector', JSON.stringify(current));
-    };
-
-    // structures
-    const opener = createElement('<div id="iconselector_opener" title="Insertar emoji">😃</div>');
-    const structure = createElement('<div id="iconselector"><div class="close"><span>&times;</span></div><div class="iconlist-wrap"><div class="iconlist"></div></div><div class="grouplist-wrap"><div class="grouplist"></div></div></div>');
-
-    // append styles
+    const opener = Utils.CreateElement('<div id="iconselector_opener" title="Insertar emoji">😃</div>');
+    const structure = Utils.CreateElement('<div id="iconselector"><div class="close"><span>&times;</span></div><div class="iconlist-wrap"><div class="iconlist"></div></div><div class="grouplist-wrap"><div class="grouplist"></div></div></div>');
     const styles = '#iconselector_opener, #iconselector .close, #iconselector span{cursor:pointer}#iconselector .iconlist-wrap::-webkit-scrollbar, #iconselector .grouplist-wrap::-webkit-scrollbar{width:4px;height:4px}#iconselector .iconlist-wrap::-webkit-scrollbar-button, #iconselector .grouplist-wrap::-webkit-scrollbar-button{display:none}#iconselector .iconlist-wrap::-webkit-scrollbar-track-piece, #iconselector .grouplist-wrap::-webkit-scrollbar-track-piece{background:white}#iconselector .iconlist-wrap::-webkit-scrollbar-thumb, #iconselector .grouplist-wrap::-webkit-scrollbar-thumb{background:#999}#iconselector, #iconselector *{box-sizing:content-box}#iconselector{display:none;width:100%;background:white}#iconselector.active{display:block;border:solid 1px #ccc;border-radius:2px;padding:6px;box-shadow:inset 0 0 5px 0 #ccc}#iconselector span{padding:4px;width:22px;height:22px;font-size:16px}#iconselector span:hover{background:#ccc}#iconselector .close{text-align:right;font-family:Tahoma,sans-serif;margin-bottom:4px}#iconselector .close span{padding:0 4px}#iconselector .close span:hover{background:red;color:white;padding:0 4px}#iconselector .iconlist-wrap{overflow:hidden;height:144px}#iconselector .iconlist-wrap:hover{overflow-y:auto}#iconselector .iconlist{display:flex;flex-wrap:wrap;text-align:center}#iconselector .grouplist-wrap{overflow:hidden;margin-top:9px;border-top:solid 1px #ccc;padding-top:2px}#iconselector .grouplist-wrap:hover{overflow-x:auto}#iconselector .grouplist{display:flex;text-align:center}#iconselector .grouplist span.selected{border-bottom:solid 4px #11aff7}';
-    const style = document.createElement('style');
-    style.rel = 'stylesheet';
-    style.type = 'text/css';
-    style.innerHTML = styles;
-    document.head.appendChild(style);
 
-    // methods
+    /**
+     * Initializator
+     */
+    const Init = () => {
+        AppendStyles();
+        UpdateRecentEmojis();
+        FillStructure().then(() =>{
+            PositionateThings();
+            EventHandler();
+            LoadRecentsOrFirstGroup();
+        });
+    };
+
+    /**
+     * Add styles to head
+     */
+    const AppendStyles = () => {
+        const style = document.createElement('style');
+        style.rel = 'stylesheet';
+        style.type = 'text/css';
+        style.innerHTML = styles;
+        document.head.appendChild(style);
+    };
+
+    /**
+     * Append stored emojis to array
+     */
+    const UpdateRecentEmojis = () => Utils.GetStorageValues().forEach(el => iconSet._recent.set.push(el));
+
+    /**
+     * Fills html structure with all the emojis
+     * @returns {Promise}
+     */
+    const FillStructure = () => {
+        return new Promise(resolve => {
+            for (let [key, value] of Object.entries(iconSet)) {
+                structure.querySelector('.grouplist').innerHTML += `<span data-group="${key}" title="${value.title}">${value.groupIcon}</span>`;
+                value.set.forEach(icon => {
+                    structure.querySelector('.iconlist').innerHTML += `<span title="${icon.name}" data-group="${key}">${icon.icon}</span>`;
+                });
+            }
+            target.parentElement.style.position = 'relative';
+            target.parentElement.appendChild(structure);
+            target.parentElement.appendChild(opener);
+            resolve();
+        });
+    };
+
+    /**
+     * When exist, show the first recent emojis, otherwise the first group is shown
+     */
+    const LoadRecentsOrFirstGroup = () => {
+        if (!!iconSet._recent.set.length) structure.querySelector('.grouplist span[data-group="_recent"]').click();
+        else structure.querySelector(`.grouplist span[data-group="${Object.keys(iconSet)[1]}"]`).click();
+    };
+
+    /**
+     * Set some css to structures
+     */
     const PositionateThings = () => {
         opener.style.position = 'absolute';
         opener.style.top = 0 + 'px';
@@ -2117,6 +2186,11 @@ const IconSelector = (target, returnSelectors = false) => {
         //structure.style.top = target.getBoundingClientRect().top + window.scrollY + target.offsetHeight + 2 + 'px';
         //structure.style.left = target.getBoundingClientRect().left + 'px';
     };
+
+    /**
+     * Add an emoji to the recent list
+     * @param {string} icon
+     */
     const AddToRecents = icon => {
         iconSet._recent.set.some(row => {
             if (row.icon === icon) {
@@ -2134,7 +2208,7 @@ const IconSelector = (target, returnSelectors = false) => {
                 value.set.some(emoji => {
                     if (emoji.icon === icon) {
                         iconSet._recent.set.unshift(emoji);
-                        setStorageValue(emoji);
+                        Utils.SetStorageValue(emoji);
                         return true;
                     }
                 });
@@ -2142,6 +2216,10 @@ const IconSelector = (target, returnSelectors = false) => {
         }
         RewriteRecents();
     };
+
+    /**
+     * Rewrites the recent emoji list
+     */
     const RewriteRecents = () => {
         structure.querySelectorAll('.iconlist span[data-group="_recent"]').forEach(el => el.remove());
         iconSet._recent.set.forEach(icon => structure.querySelector('.iconlist').innerHTML += `<span title="${icon.name}" data-group="_recent" style="display: none;">${icon.icon}</span>`);
@@ -2151,21 +2229,16 @@ const IconSelector = (target, returnSelectors = false) => {
         }
     };
 
-    // filling
-    getStorageValues().forEach(el => iconSet._recent.set.push(el));
-    for (let [key, value] of Object.entries(iconSet)) {
-        structure.querySelector('.grouplist').innerHTML += `<span data-group="${key}" title="${value.title}">${value.groupIcon}</span>`;
-        value.set.forEach(icon => {
-            structure.querySelector('.iconlist').innerHTML += `<span title="${icon.name}" data-group="${key}">${icon.icon}</span>`;
-        });
-    }
+    /**
+     * Sets and handle the target's pointer position
+     */
+    const SetTargetPosition = () => target.dataset.position = target.selectionStart;
 
-    // events & actions
-    //window.addEventListener('scroll', () => structure.style.top = target.getBoundingClientRect().top + target.offsetHeight + 2 + 'px');
-    target.addEventListener('blur', () => {
-        target.dataset.position = target.selectionStart;
-    });
-    opener.addEventListener('click', ev => {
+    /**
+     * Opens the emoji selector
+     * @param {MouseEvent} ev
+     */
+    const Open = ev => {
         ev.preventDefault();
         if (structure.classList.contains('active')) {
             target.focus();
@@ -2174,49 +2247,58 @@ const IconSelector = (target, returnSelectors = false) => {
         PositionateThings();
         structure.classList.add('active');
         target.focus();
-    });
-    structure.querySelector('.close').addEventListener('click', ev => {
+    };
+
+    /**
+     * Closes the emoji selector
+     * @param {MouseEvent} ev
+     */
+    const Close = ev => {
         ev.preventDefault();
-        structure.classList.remove('active')
-    });
-    structure.querySelectorAll('.grouplist span').forEach(el => {
-        el.addEventListener('click', () => {
-            el.parentElement.childNodes.forEach(n => n.classList.remove('selected'));
-            el.classList.add('selected');
-            structure.querySelectorAll('.iconlist span').forEach(el => el.style.display = 'none');
-            structure.querySelectorAll(`.iconlist span[data-group="${el.dataset.group}"]`).forEach(el => el.style.display = 'block');
+        structure.classList.remove('active');
+    };
+
+    /**
+     * Handles the group selection, showing its emojis
+     * @param {HTMLElement} el
+     */
+    const SelectGroup = el => {
+        el.parentElement.childNodes.forEach(n => n.classList.remove('selected'));
+        el.classList.add('selected');
+        structure.querySelectorAll('.iconlist span').forEach(el => el.style.display = 'none');
+        structure.querySelectorAll(`.iconlist span[data-group="${el.dataset.group}"]`).forEach(el => el.style.display = 'block');
+    };
+
+    /**
+     * Handles the emoji selection, appending them to the target input, then storing to recents
+     * @param {MouseEvent} ev
+     */
+    const SelectIcon = ev => {
+        let currentValue = target.value;
+        let position = +target.dataset.position || 0;
+        target.value = currentValue.substring(0, position) + ev.target.innerText + currentValue.substring(position);
+        let newPosition = position + ev.target.innerText.length;
+        target.dataset.position = newPosition;
+        target.focus();
+        target.setSelectionRange(newPosition, newPosition);
+        AddToRecents(ev.target.innerText);
+    };
+
+    /**
+     * Event handling
+     */
+    const EventHandler = () => {
+        target.addEventListener('blur', () => SetTargetPosition());
+        opener.addEventListener('click', ev => Open(ev));
+        structure.querySelector('.close').addEventListener('click', ev => Close(ev));
+        structure.querySelectorAll('.grouplist span').forEach(el => el.addEventListener('click', () => SelectGroup(el)));
+        structure.querySelector('.iconlist').addEventListener('click', ev => {
+            if (ev.target.tagName === 'SPAN') SelectIcon(ev);
         });
-    });
-    structure.querySelector('.grouplist').addEventListener('wheel', ev => {
-        ev.preventDefault();
-        ev.currentTarget.parentElement.scrollTo(ev.currentTarget.parentElement.scrollLeft += +ev.deltaY, 0)
-    });
-    structure.querySelector('.iconlist').addEventListener('click', ev => {
-        if (ev.target.tagName === 'SPAN') {
-            let currentValue = target.value;
-            let position = +target.dataset.position || 0;
-            target.value = currentValue.substring(0, position) + ev.target.innerText + currentValue.substring(position);
-            let newPosition = position + ev.target.innerText.length;
-            target.dataset.position = newPosition;
-            target.focus();
-            target.setSelectionRange(newPosition, newPosition);
-            AddToRecents(ev.target.innerText);
-        }
-    });
+    };
 
-    // structure positioning
-    PositionateThings();
 
-    // insert to dom
-    target.parentElement.style.position = 'relative';
-    target.parentElement.appendChild(structure);
-    target.parentElement.appendChild(opener);
-    //document.body.appendChild(opener);
-    //document.body.appendChild(structure);
+    /** Launcher */
+    Init();
 
-    // start with recent or first
-    if (!!iconSet._recent.set.length) structure.querySelector('.grouplist span[data-group="_recent"]').click();
-    else structure.querySelector(`.grouplist span[data-group="${Object.keys(iconSet)[1]}"]`).click();
-
-    if (returnSelectors === true) return [opener, structure];
 };
