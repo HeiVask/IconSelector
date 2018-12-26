@@ -6,12 +6,17 @@
 </head>
 <body>
 <label>
-    <input type="text" size="100">
+    <input id="one" type="text" size="100">
+</label>
+<br><br><br><br>
+<label>
+    <input id="two" type="text" size="100">
 </label>
 
 <script src="iconselector.js"></script>
 <script>
-    IconSelector(document.querySelector('input'));
+    IconSelector(one);
+    IconSelector(two);
 </script>
 </body>
 </html>
