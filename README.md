@@ -1,4 +1,4 @@
 # IconSelector
-Unicode Emoji Selector fully compatible with Gmail
+Unicode Emoji Selector
 
 Only the javascript file is needed. See `index.html` for an example.
